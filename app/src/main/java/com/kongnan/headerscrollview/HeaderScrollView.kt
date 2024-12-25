@@ -46,7 +46,10 @@ class HeaderScrollView @JvmOverloads constructor(
      */
     private val contentViewHeight get() = if (contentView.isVisible) measuredHeight + headViewHeight - headViewMinHeight else measuredHeight
 
-    private val headViewMinHeight get() = if (headView.isVisible) headView.minimumHeight else 0
+    /**
+     * headView的最小高度，即最后一个吸顶View的高度
+     */
+    private val headViewMinHeight get() = if (headView.isVisible) (headView as IStickyHeader).lastStickyHeight else 0
 
     override fun onFinishInflate() {
         super.onFinishInflate()
@@ -54,10 +57,10 @@ class HeaderScrollView @JvmOverloads constructor(
         if (childView.childCount == 2) {
             headView = childView.getChildAt(0) as ViewGroup
             contentView = childView.getChildAt(1) as ViewGroup
-            isStickyLayout = headView is View.OnScrollChangeListener
+            isStickyLayout = headView is IStickyHeader
             if (isStickyLayout) {
                 headView.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
-                    (headView as View.OnScrollChangeListener).onScrollChange(this, scrollX, scrollY, scrollX, scrollY)
+                    (headView as IStickyHeader).onHeaderScrollChange(this, scrollX, scrollY, scrollX, scrollY)
                 }
             }
         } else {
@@ -90,12 +93,12 @@ class HeaderScrollView @JvmOverloads constructor(
     }
 
     override fun onOverScrolled(scrollX: Int, scrollY: Int, clampedX: Boolean, clampedY: Boolean) {
-        val scrollMax = headViewHeight - headView.minimumHeight
+        val scrollMax = headViewHeight - headViewMinHeight
         super.onOverScrolled(scrollX, min(scrollMax, scrollY), clampedX, clampedY)
     }
 
     override fun scrollTo(x: Int, y: Int) {
-        val scrollMax = headViewHeight - headView.minimumHeight
+        val scrollMax = headViewHeight - headViewMinHeight
         super.scrollTo(x, min(scrollMax, y))
     }
 
@@ -103,7 +106,7 @@ class HeaderScrollView @JvmOverloads constructor(
         val isParentScroll = dispatchNestedPreScroll(dx, dy, consumed, null, type)
         if (!isParentScroll) {
             // 向上滑动且当前滑动距离小于顶部视图的高度时，需要此控件滑动响应的距离以保证滑动连贯性
-            val needKeepScroll = dy > 0 && scrollY < (headViewHeight - headView.minimumHeight)
+            val needKeepScroll = dy > 0 && scrollY < (headViewHeight - headViewMinHeight)
             if (needKeepScroll) {
                 needInvalidate = true
                 scrollBy(0, dy)
@@ -129,7 +132,7 @@ class HeaderScrollView @JvmOverloads constructor(
     override fun onScrollChanged(l: Int, t: Int, oldl: Int, oldt: Int) {
         super.onScrollChanged(l, t, oldl, oldt)
         if (isStickyLayout) {
-            (headView as View.OnScrollChangeListener).onScrollChange(this, l, t, oldl, oldt)
+            (headView as IStickyHeader).onHeaderScrollChange(this, l, t, oldl, oldt)
         }
     }
 

@@ -9,13 +9,14 @@ import kotlin.math.max
 
 class StickyLinearLayout @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
-) : LinearLayout(context, attrs, defStyleAttr), View.OnScrollChangeListener {
+) : LinearLayout(context, attrs, defStyleAttr),
+    IStickyHeader {
 
     init {
         isChildrenDrawingOrderEnabled = true
     }
 
-    override fun onScrollChange(v: View, scrollX: Int, scrollY: Int, oldScrollX: Int, oldScrollY: Int) {
+    override fun onHeaderScrollChange(v: View, scrollX: Int, scrollY: Int, oldScrollX: Int, oldScrollY: Int) {
         var isFixed = false
         var isNext = true
         var previousOffset = 0
@@ -41,8 +42,12 @@ class StickyLinearLayout @JvmOverloads constructor(
         }
     }
 
-    private fun nextStickyView(index: Int): View? {
-        for (i in index - 1 downTo 0) {
+    override fun getLastStickyHeight(): Int {
+        return lastStickyView()?.measuredHeight ?: 0
+    }
+
+    private fun lastStickyView(): View? {
+        for (i in childCount - 1 downTo 0) {
             val child = getChildAt(i)
             val offsetHelper = getViewOffsetHelper(child)
             if (offsetHelper != null) {
@@ -52,17 +57,15 @@ class StickyLinearLayout @JvmOverloads constructor(
         return null
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        var minHeight = 0
-        for (i in childCount - 1 downTo 0) {
+    private fun nextStickyView(index: Int): View? {
+        for (i in index - 1 downTo 0) {
             val child = getChildAt(i)
-            if ((child.layoutParams as LayoutParams).isSticky) {
-                minHeight = child.measuredHeight
-                break
+            val offsetHelper = getViewOffsetHelper(child)
+            if (offsetHelper != null) {
+                return child
             }
         }
-        minimumHeight = minHeight
+        return null
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {
